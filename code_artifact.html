@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>佳慧區牧生日快樂｜走在神命定的道路上</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Noto Serif TC & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700;900&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        amberGold: '#F59E0B',
+                        dawnPeach: '#FDE68A',
+                        divineSky: '#E0F2FE',
+                        blessingGreen: '#10B981',
+                        graceRose: '#F43F5E',
+                    },
+                    fontFamily: {
+                        serif: ['"Noto Serif TC"', 'serif'],
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0f172a;
+            font-family: 'Plus Jakarta Sans', "Noto Serif TC", sans-serif;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        /* Custom scrollbars & glassmorphic containers */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 50px rgba(245, 158, 11, 0.25);
+        }
+        /* Floating animations for scripture bubbles */
+        @keyframes floatUp {
+            0% { opacity: 0; transform: translateY(20px) scale(0.9); }
+            15% { opacity: 1; transform: translateY(0) scale(1.05); }
+            85% { opacity: 1; transform: translateY(-40px) scale(1); }
+            100% { opacity: 0; transform: translateY(-70px) scale(0.95); }
+        }
+        .floating-toast {
+            animation: floatUp 3.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        /* Glowing effects */
+        .glow-gold {
+            box-shadow: 0 0 25px rgba(245, 158, 11, 0.6);
+        }
+        .glow-text {
+            text-shadow: 0 2px 10px rgba(245, 158, 11, 0.5);
+        }
+    </style>
+</head>
+<body class="relative min-h-screen w-full flex flex-col justify-between select-none">
+
+    <!-- 遊戲主畫布 -->
+    <canvas id="gameCanvas" class="absolute inset-0 z-0"></canvas>
+
+    <!-- 頂部 HUD (狀態欄與資訊) -->
+    <header class="relative z-10 p-4 md:p-6 flex justify-between items-center w-full max-w-5xl mx-auto pointer-events-none">
+        <!-- 身心靈恢復進度條 -->
+        <div class="pointer-events-auto flex items-center gap-3 bg-white/80 backdrop-blur-md px-4 py-2.5 rounded-full shadow-lg border border-amber-200/60 w-56 sm:w-72">
+            <div class="text-xl">✨</div>
+            <div class="flex-1">
+                <div class="flex justify-between items-center text-xs font-bold text-amber-900 mb-1">
+                    <span>身心靈恢復值</span>
+                    <span id="progressText">0%</span>
+                </div>
+                <div class="w-full bg-amber-100 rounded-full h-3 overflow-hidden p-0.5 border border-amber-200">
+                    <div id="progressBar" class="bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 h-full rounded-full transition-all duration-300 w-0 shadow-sm"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 功能按鈕群 (靜音/說明) -->
+        <div class="pointer-events-auto flex gap-2">
+            <button id="soundToggleBtn" class="w-11 h-11 bg-white/90 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg border border-amber-200 text-amber-700 hover:bg-amber-50 active:scale-95 transition-all" title="開關音效">
+                <span id="soundIcon" class="text-xl">🔊</span>
+            </button>
+            <button id="helpBtn" class="w-11 h-11 bg-white/90 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg border border-amber-200 text-amber-700 hover:bg-amber-50 active:scale-95 transition-all" title="遊戲說明">
+                <span class="text-xl font-bold">?</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- 彈幕與祝福經文顯示區域 -->
+    <div id="toastContainer" class="pointer-events-none absolute inset-x-0 top-24 z-20 flex flex-col items-center gap-3 px-4"></div>
+
+    <!-- 底部控制說明與觸控提示 -->
+    <div class="relative z-10 p-4 text-center pointer-events-none mb-2">
+        <div id="controlHint" class="inline-block bg-white/70 backdrop-blur-md px-5 py-2 rounded-full text-xs sm:text-sm font-semibold text-amber-900 shadow-md border border-amber-200/50">
+            💡 點擊螢幕 / 按 [空白鍵] 或 [向上鍵] 來跨越重擔與收集祝福！
+        </div>
+    </div>
+
+    <!-- 手機端專屬跳躍與移動輔助按鈕 (點擊畫面任意處亦可跳躍) -->
+    <div class="relative z-10 flex justify-between items-center px-6 pb-6 md:hidden pointer-events-auto">
+        <button id="mobileJumpBtn" class="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-lg rounded-2xl shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 border border-amber-300">
+            <span>✨ 跨越低潮．領受祝福 (跳躍)</span>
+        </button>
+    </div>
+
+    <!-- 遊戲開場/說明彈窗 Modal -->
+    <div id="startModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md transition-opacity duration-300">
+        <div class="glass-card max-w-md w-full rounded-3xl p-6 sm:p-8 text-center border border-white/80 shadow-2xl relative overflow-hidden">
+            <div class="absolute -top-12 -right-12 w-32 h-32 bg-amber-300/30 rounded-full blur-2xl"></div>
+            <div class="absolute -bottom-12 -left-12 w-32 h-32 bg-rose-300/30 rounded-full blur-2xl"></div>
+
+            <div class="inline-flex p-3 bg-amber-100 text-amber-600 rounded-2xl mb-4 text-3xl shadow-inner">
+                🕊️
+            </div>
+            
+            <h1 class="text-2xl sm:text-3xl font-black text-slate-800 font-serif mb-2">
+                佳慧區牧生日特別企劃
+            </h1>
+            <p class="text-amber-700 font-bold text-sm tracking-wide mb-4">
+                走在神命定的道路上 ‧ 重新得力
+            </p>
+
+            <div class="text-slate-600 text-xs sm:text-sm leading-relaxed space-y-2 mb-6 text-left bg-amber-50/80 p-4 rounded-2xl border border-amber-200/60">
+                <p>親愛的佳慧區牧：感謝您一直以來熱心的陪伴與牧養！在今天這個特別的日子裡，讓我們一起走上這條榮耀的命定之路：</p>
+                <ul class="list-disc list-inside space-y-1 text-slate-700 font-medium">
+                    <li>🌟 收集<b>金色光球</b>、<b>活水泉源</b>與<b>命定冠冕</b></li>
+                    <li>🕊️ 跳躍跨越象徵疲憊與重擔的烏雲石塊</li>
+                    <li>🌈 讓身心靈恢復值達 100%，解鎖專屬生日祝福賀卡！</li>
+                </ul>
+            </div>
+
+            <button id="startGameBtn" class="w-full py-4 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-white font-bold text-lg rounded-2xl shadow-lg hover:shadow-amber-500/30 hover:scale-[1.02] active:scale-95 transition-all border border-amber-200">
+                開始命定祝福之旅 ➔
+            </button>
+        </div>
+    </div>
+
+    <!-- 結局祝福賀卡 Modal -->
+    <div id="endingModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md hidden transition-all duration-500 opacity-0 scale-95">
+        <div class="glass-card max-w-lg w-full rounded-3xl p-6 sm:p-8 text-center border-2 border-amber-300/80 shadow-2xl relative overflow-hidden my-auto max-h-[90vh] overflow-y-auto">
+            
+            <!-- 背景發光環繞裝飾 -->
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-32 bg-gradient-to-b from-amber-200/50 to-transparent pointer-events-none"></div>
+
+            <div class="relative z-10">
+                <div class="inline-block px-4 py-1.5 bg-amber-100 text-amber-800 rounded-full text-xs font-bold tracking-widest mb-3 border border-amber-200">
+                    HAPPY BIRTHDAY PASTOR JIAHUI
+                </div>
+
+                <h2 class="text-2xl sm:text-3xl font-black text-slate-800 font-serif mb-2 glow-text">
+                    🎉 親愛的佳慧區牧，生日快樂！ 🎂
+                </h2>
+
+                <div class="w-16 h-1 bg-gradient-to-r from-amber-400 to-rose-400 mx-auto rounded-full mb-5"></div>
+
+                <!-- 祝福內容 -->
+                <div class="text-slate-700 text-xs sm:text-sm leading-relaxed text-left space-y-3 bg-white/90 p-5 rounded-2xl shadow-inner border border-amber-100 mb-5">
+                    <p class="font-bold text-amber-900 text-sm sm:text-base">
+                        親愛的區牧：
+                    </p>
+                    <p class="indent-6">
+                        感謝您長久以來無私的牧養、傾聽與溫暖愛心！知道您平時辛勞付出，體力與心情難免遇到低潮與疲憊，但願天父親自伸手摸著您、更新您！
+                    </p>
+                    <p class="indent-6">
+                        願神的醫治與喜樂大能大大充滿您的身心靈，醫治所有的疲憊，擦去心裡的低谷。在嶄新的這一歲裡，願您重新得力，穩穩走在神專為您預備的美好命定道路上，平安滿溢！
+                    </p>
+
+                    <!-- 經文卡 -->
+                    <div class="mt-4 p-4 bg-amber-50 rounded-xl border-l-4 border-amber-500 text-amber-950 font-serif">
+                        <p class="text-xs sm:text-sm italic font-medium leading-normal mb-1">
+                            「但那等候耶和華的必重新得力。他們必如鷹展翅上騰；他們奔跑卻不困倦，行走卻不疲乏。」
+                        </p>
+                        <p class="text-right text-xs font-bold text-amber-700">
+                            —— 以賽亞書 40:31
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 互動按鈕 -->
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <button id="blessingHeartBtn" class="flex-1 py-3.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold rounded-2xl shadow-md hover:shadow-rose-500/30 active:scale-95 transition-all flex items-center justify-center gap-2 border border-rose-200">
+                        <span>💖 收下這份祝福 (愛心煙火)</span>
+                    </button>
+                    <button id="restartBtn" class="py-3.5 px-5 bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold rounded-2xl active:scale-95 transition-all border border-amber-300">
+                        🔄 再玩一次
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主 JavaScript 程式碼 -->
+    <script>
+        /**
+         * 佳慧區牧生日祝福 HTML5 遊戲邏輯
+         * 包含 Web Audio API 音效合成器、2D 畫布橫向捲軸引擎、動態背景演變、彈幕經文系統
+         */
+
+        // --- 1. Web Audio API 音效合成引擎 ---
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) {
+                        this.ctx = new AudioCtx();
+                    }
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            // 播放柔和音符
+            playTone(freq, type = 'sine', duration = 0.2, startGain = 0.3) {
+                if (this.muted || !this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(startGain, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e) {}
+            }
+
+            // 跳躍音效 (輕盈滑音)
+            playJump() {
+                if (this.muted || !this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(320, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(640, this.ctx.currentTime + 0.18);
+                    
+                    gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.18);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.18);
+                } catch(e) {}
+            }
+
+            // 收集祝福音效 (清脆風鈴雙音/和弦)
+            playCollect() {
+                if (this.muted || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                notes.forEach((freq, idx) => {
+                    setTimeout(() => {
+                        this.playTone(freq, 'triangle', 0.3, 0.2);
+                    }, idx * 60);
+                });
+            }
+
+            // 勝利通關音效 (溫暖榮耀和弦)
+            playVictory() {
+                if (this.muted || !this.ctx) return;
+                const arpeggio = [392.00, 523.25, 659.25, 783.99, 1046.50, 1318.51]; // G4, C5, E5, G5, C6, E6
+                arpeggio.forEach((freq, idx) => {
+                    setTimeout(() => {
+                        this.playTone(freq, 'sine', 0.6, 0.25);
+                    }, idx * 120);
+                });
+            }
+
+            // 愛心煙火音效
+            playHeartPop() {
+                if (this.muted || !this.ctx) return;
+                const freqs = [587.33, 739.99, 880.00, 1174.66]; // D5, F#5, A5, D6
+                freqs.forEach((freq, idx) => {
+                    setTimeout(() => {
+                        this.playTone(freq, 'sine', 0.4, 0.2);
+                    }, idx * 80);
+                });
+            }
+        }
+
+        const sounds = new SoundEngine();
+
+        // --- 2. 經文與祝福彈幕資料陣列 ---
+        const BLESSINGS = [
+            { type: 'joy', icon: '✨', text: '喜樂的心乃是良藥！神擦去您一切的疲憊！', scripture: '箴言 17:22' },
+            { type: 'power', icon: '💧', text: '疲乏的，祂賜能力；軟弱的，祂加力量！', scripture: '以賽亞書 40:29' },
+            { type: 'destiny', icon: '👑', text: '耶和華必時常引導你，使你骨頭得滋潤！', scripture: '以賽亞書 58:11' },
+            { type: 'joy', icon: '☀️', text: '主的恩典夠你用，神的平安護衛你的心靈！', scripture: '哥林多後書 12:9' },
+            { type: 'power', icon: '🕊️', text: '重新得力，如鷹展翅上騰！奔跑卻不困倦！', scripture: '以賽亞書 40:31' },
+            { type: 'destiny', icon: '🌸', text: '祢以恩典為年歲的冠冕，祢的路徑都滴下脂油！', scripture: '詩篇 65:11' },
+            { type: 'joy', icon: '💖', text: '佳慧區牧生日快樂！神深深愛著您，賜下無限美好！', scripture: '祝福滿滿' }
+        ];
+
+        // --- 3. 遊戲核心變數與設定 ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let animationFrameId = null;
+        let gameProgress = 0; // 0 to 100%
+        let isGameStarted = false;
+        let isGameFinished = false;
+
+        // 螢幕尺寸自適應
+        let width = 0;
+        let height = 0;
+        let groundY = 0;
+
+        function resizeCanvas() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            groundY = height * 0.78; // 地面高度
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // 玩家物件 (代表「佳慧區牧」可愛形象)
+        const player = {
+            x: 100,
+            y: 0,
+            width: 50,
+            height: 65,
+            vy: 0,
+            gravity: 0.65,
+            jumpPower: -13.5,
+            isGrounded: true,
+            runFrame: 0,
+            haloAngle: 0,
+            
+            reset() {
+                this.x = Math.max(60, width * 0.12);
+                this.y = groundY - this.height;
+                this.vy = 0;
+                this.isGrounded = true;
+            },
+
+            jump() {
+                if (this.isGrounded) {
+                    this.vy = this.jumpPower;
+                    this.isGrounded = false;
+                    sounds.playJump();
+                    createParticles(this.x + this.width / 2, this.y + this.height, '#F59E0B', 8);
+                }
+            },
+
+            update() {
+                this.vy += this.gravity;
+                this.y += this.vy;
+
+                if (this.y >= groundY - this.height) {
+                    this.y = groundY - this.height;
+                    this.vy = 0;
+                    this.isGrounded = true;
+                }
+
+                this.runFrame += 0.15;
+                this.haloAngle += 0.04;
+            },
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                // 1. 聖潔天使光環 / 溫暖光芒 aura
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(25, 28, 42, 0, Math.PI * 2);
+                const haloGrad = ctx.createRadialGradient(25, 28, 10, 25, 28, 45);
+                haloGrad.addColorStop(0, 'rgba(254, 240, 138, 0.5)');
+                haloGrad.addColorStop(1, 'rgba(245, 158, 11, 0)');
+                ctx.fillStyle = haloGrad;
+                ctx.fill();
+                ctx.restore();
+
+                // 頭頂小光圈
+                ctx.beginPath();
+                ctx.ellipse(25, -6 + Math.sin(this.haloAngle) * 2, 16, 5, 0, 0, Math.PI * 2);
+                ctx.strokeStyle = '#FBBF24';
+                ctx.lineWidth = 3;
+                ctx.shadowColor = '#F59E0B';
+                ctx.shadowBlur = 8;
+                ctx.stroke();
+
+                // 2. 身體 / 牧師長袍 (溫暖柔軟粉橘與白色)
+                ctx.fillStyle = '#FB7185'; // 柔美衣袍
+                ctx.beginPath();
+                ctx.roundRect(10, 26, 30, 32, 12);
+                ctx.fill();
+
+                // 白色披肩/領巾
+                ctx.fillStyle = '#FFFFFF';
+                ctx.beginPath();
+                ctx.moveTo(10, 26);
+                ctx.lineTo(25, 38);
+                ctx.lineTo(40, 26);
+                ctx.lineTo(35, 26);
+                ctx.lineTo(25, 33);
+                ctx.lineTo(15, 26);
+                ctx.closePath();
+                ctx.fill();
+
+                // 3. 頭部與臉龐
+                ctx.fillStyle = '#FDE68A'; // 膚色
+                ctx.beginPath();
+                ctx.arc(25, 16, 14, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 溫柔秀髮
+                ctx.fillStyle = '#78350F';
+                ctx.beginPath();
+                ctx.arc(25, 14, 15, Math.PI * 0.8, Math.PI * 2.2);
+                ctx.fill();
+                // 瀏海
+                ctx.beginPath();
+                ctx.arc(20, 10, 6, 0, Math.PI * 2);
+                ctx.arc(28, 10, 6, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 歡喜的眼睛 ^_^
+                ctx.strokeStyle = '#451A03';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(19, 16, 2.5, Math.PI, 0); // 左眼
+                ctx.arc(31, 16, 2.5, Math.PI, 0); // 右眼
+                ctx.stroke();
+
+                // 甜美微笑
+                ctx.beginPath();
+                ctx.arc(25, 18, 3.5, 0, Math.PI);
+                ctx.stroke();
+
+                // 腮紅
+                ctx.fillStyle = 'rgba(244, 63, 94, 0.4)';
+                ctx.beginPath();
+                ctx.arc(16, 19, 2.5, 0, Math.PI * 2);
+                ctx.arc(34, 19, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 手中持著發光的愛心/十字架手仗
+                ctx.fillStyle = '#F59E0B';
+                const handY = 32 + Math.sin(this.runFrame * 2) * 2;
+                ctx.beginPath();
+                ctx.arc(36, handY, 4, 0, Math.PI * 2);
+                ctx.fill();
+                // 小愛心
+                ctx.fillStyle = '#F43F5E';
+                ctx.font = '12px sans-serif';
+                ctx.fillText('✝️', 34, handY - 4);
+
+                // 奔跑雙腳動態
+                ctx.strokeStyle = '#78350F';
+                ctx.lineWidth = 3;
+                const legOffset = Math.sin(this.runFrame * 3) * 6;
+                ctx.beginPath();
+                ctx.moveTo(18, 58);
+                ctx.lineTo(18 - legOffset, 65);
+                ctx.moveTo(32, 58);
+                ctx.lineTo(32 + legOffset, 65);
+                ctx.stroke();
+
+                ctx.restore();
+            }
+        };
+
+        // 障礙物與祝福物品列表
+        let items = [];
+        let particles = [];
+        let flowers = [];
+        let fireworks = [];
+
+        // 花朵動態生成 (隨著進度越多越茂盛)
+        function initFlowers() {
+            flowers = [];
+            for (let i = 0; i < 60; i++) {
+                flowers.push({
+                    x: Math.random() * width * 3,
+                    y: groundY + 10 + Math.random() * (height - groundY - 20),
+                    size: 4 + Math.random() * 6,
+                    color: ['#F43F5E', '#FB7185', '#FBBF24', '#38BDF8', '#A7F3D0'][Math.floor(Math.random() * 5)],
+                    bloomed: Math.random() < 0.3
+                });
+            }
+        }
+
+        // 產生障礙物與祝福收集品
+        let spawnTimer = 0;
+        function spawnObjects() {
+            spawnTimer++;
+            if (spawnTimer > 90) { // 每隔一段時間產生
+                spawnTimer = 0;
+                
+                // 70% 機率產生祝福，30% 機率產生低潮障礙物
+                const isBlessing = Math.random() < 0.75;
+
+                if (isBlessing) {
+                    const blessingTypes = [
+                        { type: 'joy', icon: '✨', color: '#F59E0B', label: '喜樂光球' },
+                        { type: 'power', icon: '💧', color: '#3B82F6', label: '活水泉源' },
+                        { type: 'destiny', icon: '👑', color: '#EC4899', label: '命定冠冕' }
+                    ];
+                    const b = blessingTypes[Math.floor(Math.random() * blessingTypes.length)];
+                    items.push({
+                        x: width + 50,
+                        y: groundY - 40 - Math.random() * 80,
+                        width: 36,
+                        height: 36,
+                        isBlessing: true,
+                        type: b.type,
+                        icon: b.icon,
+                        color: b.color,
+                        floatOffset: Math.random() * Math.PI * 2
+                    });
+                } else {
+                    // 低潮障礙物（烏雲或重擔石頭）
+                    const isCloud = Math.random() < 0.5;
+                    items.push({
+                        x: width + 50,
+                        y: isCloud ? groundY - 70 : groundY - 35,
+                        width: isCloud ? 45 : 35,
+                        height: isCloud ? 35 : 35,
+                        isBlessing: false,
+                        icon: isCloud ? '☁️' : '🪨',
+                        label: isCloud ? '疲憊烏雲' : '重擔石頭'
+                    });
+                }
+            }
+        }
+
+        // 粒子特效
+        function createParticles(x, y, color, count = 12) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x, y,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.8) * 6,
+                    size: Math.random() * 5 + 2,
+                    color,
+                    alpha: 1,
+                    life: 0.02 + Math.random() * 0.02
+                });
+            }
+        }
+
+        // 愛心煙火特效
+        function createHeartFireworks() {
+            sounds.playHeartPop();
+            const cx = width / 2;
+            const cy = height / 3;
+            for (let angle = 0; angle < Math.PI * 2; angle += 0.15) {
+                // 心型方程式
+                const r = 10;
+                const x = 16 * Math.pow(Math.sin(angle), 3);
+                const y = -(13 * Math.cos(angle) - 5 * Math.cos(2*angle) - 2 * Math.cos(3*angle) - Math.cos(4*angle));
+                fireworks.push({
+                    x: cx,
+                    y: cy,
+                    vx: x * 0.35 + (Math.random() - 0.5),
+                    vy: y * 0.35 + (Math.random() - 0.5),
+                    color: ['#F43F5E', '#F59E0B', '#FB7185', '#F472B6', '#FDE68A'][Math.floor(Math.random() * 5)],
+                    alpha: 1,
+                    size: Math.random() * 4 + 3
+                });
+            }
+        }
+
+        // 顯示祝福經文彈幕
+        function showBlessingToast(blessing) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'floating-toast glass-panel px-5 py-2.5 rounded-2xl shadow-xl flex items-center gap-3 border border-amber-300/80 max-w-md';
+            toast.innerHTML = `
+                <span class="text-2xl">${blessing.icon}</span>
+                <div class="text-left">
+                    <p class="text-xs sm:text-sm font-bold text-amber-950">${blessing.text}</p>
+                    <p class="text-[10px] sm:text-xs text-amber-700 font-serif font-semibold">—— ${blessing.scripture}</p>
+                </div>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => {
+                if (toast.parentNode) toast.parentNode.removeChild(toast);
+            }, 3200);
+        }
+
+        // 更新遊戲進度條
+        function updateProgress(delta) {
+            gameProgress = Math.min(100, Math.max(0, gameProgress + delta));
+            document.getElementById('progressBar').style.width = `${gameProgress}%`;
+            document.getElementById('progressText').innerText = `${Math.floor(gameProgress)}%`;
+
+            // 花朵依進度綻放
+            flowers.forEach(f => {
+                if (!f.bloomed && Math.random() < gameProgress / 100) {
+                    f.bloomed = true;
+                }
+            });
+
+            // 達到 100% 觸發生日通關結局
+            if (gameProgress >= 100 && !isGameFinished) {
+                triggerEnding();
+            }
+        }
+
+        // 觸發結局畫面
+        function triggerEnding() {
+            isGameFinished = true;
+            sounds.playVictory();
+            
+            // 爆發大煙火
+            for (let i = 0; i < 5; i++) {
+                setTimeout(createHeartFireworks, i * 300);
+            }
+
+            setTimeout(() => {
+                const endingModal = document.getElementById('endingModal');
+                endingModal.classList.remove('hidden');
+                setTimeout(() => {
+                    endingModal.classList.remove('opacity-0', 'scale-95');
+                    endingModal.classList.add('opacity-100', 'scale-100');
+                }, 50);
+            }, 1200);
+        }
+
+        // --- 4. 畫布繪製與場景渲染 ---
+        function renderScene() {
+            // 背景漸變：從低潮微光黎明 (0%) -> 陽光普照榮耀花園 (100%)
+            const p = gameProgress / 100;
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, height);
+
+            // 內插計算天空顏色
+            const r1 = Math.floor(15 + p * (253 - 15));
+            const g1 = Math.floor(23 + p * (230 - 23));
+            const b1 = Math.floor(42 + p * (138 - 42));
+
+            const r2 = Math.floor(51 + p * (254 - 51));
+            const g2 = Math.floor(65 + p * (243 - 65));
+            const b2 = Math.floor(85 + p * (199 - 85));
+
+            skyGrad.addColorStop(0, `rgb(${r1}, ${g1}, ${b1})`);
+            skyGrad.addColorStop(1, `rgb(${r2}, ${g2}, ${b2})`);
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, width, height);
+
+            // 遠山 / 榮耀山丘波浪
+            ctx.fillStyle = `rgba(245, 158, 11, ${0.1 + p * 0.25})`;
+            ctx.beginPath();
+            ctx.moveTo(0, groundY);
+            for (let x = 0; x <= width; x += 40) {
+                ctx.lineTo(x, groundY - 60 - Math.sin(x * 0.005) * 35);
+            }
+            ctx.lineTo(width, height);
+            ctx.lineTo(0, height);
+            ctx.fill();
+
+            // 太陽 / 命定榮耀光芒 (隨著進度升起)
+            const sunY = groundY - 80 - p * (height * 0.35);
+            const sunGrad = ctx.createRadialGradient(width * 0.75, sunY, 10, width * 0.75, sunY, 120 + p * 80);
+            sunGrad.addColorStop(0, 'rgba(254, 240, 138, 0.9)');
+            sunGrad.addColorStop(0.4, 'rgba(245, 158, 11, 0.5)');
+            sunGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.fillStyle = sunGrad;
+            ctx.beginPath();
+            ctx.arc(width * 0.75, sunY, 180 + p * 60, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 綠意盎然的大地命定之路
+            const groundGrad = ctx.createLinearGradient(0, groundY, 0, height);
+            const gr1 = Math.floor(30 + p * (16 - 30));
+            const gg1 = Math.floor(80 + p * (185 - 80));
+            const gb1 = Math.floor(50 + p * (129 - 50));
+            groundGrad.addColorStop(0, `rgb(${gr1}, ${gg1}, ${gb1})`);
+            groundGrad.addColorStop(1, '#064E3B');
+            ctx.fillStyle = groundGrad;
+            ctx.fillRect(0, groundY, width, height - groundY);
+
+            // 地面黃金輝光頂邊線
+            ctx.strokeStyle = `rgba(251, 191, 36, ${0.4 + p * 0.6})`;
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(0, groundY);
+            ctx.lineTo(width, groundY);
+            ctx.stroke();
+
+            // 繪製盛開的花草
+            flowers.forEach(f => {
+                if (f.bloomed) {
+                    ctx.fillStyle = f.color;
+                    ctx.beginPath();
+                    ctx.arc(f.x, f.y, f.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    // 花心
+                    ctx.fillStyle = '#FEF08A';
+                    ctx.beginPath();
+                    ctx.arc(f.x, f.y, f.size * 0.4, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    // 未盛開的小草芽
+                    ctx.fillStyle = '#10B981';
+                    ctx.fillRect(f.x, f.y, 2, 4);
+                }
+                // 花朵隨路徑滾動移動
+                f.x -= 1.5;
+                if (f.x < -10) f.x = width + 10;
+            });
+        }
+
+        // --- 5. 遊戲主循環 ---
+        function gameLoop() {
+            ctx.clearRect(0, 0, width, height);
+
+            renderScene();
+
+            if (isGameStarted && !isGameFinished) {
+                // 自動緩慢增加基本恢復進度，讓體驗放鬆愉悅
+                updateProgress(0.015);
+
+                // 生成物品
+                spawnObjects();
+
+                // 更新與繪製玩家
+                player.update();
+                player.draw();
+
+                // 更新與繪製障礙物 / 祝福
+                for (let i = items.length - 1; i >= 0; i--) {
+                    const item = items[i];
+                    item.x -= 3.2; // 移動速度
+
+                    // 飄浮上下搖曳
+                    const floatY = item.isBlessing ? Math.sin(Date.now() * 0.005 + item.floatOffset) * 6 : 0;
+                    const renderY = item.y + floatY;
+
+                    // 繪製物品
+                    ctx.font = `${item.width}px sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(item.icon, item.x, renderY);
+
+                    // 光暈效果
+                    if (item.isBlessing) {
+                        ctx.beginPath();
+                        ctx.arc(item.x, renderY, item.width * 0.7, 0, Math.PI * 2);
+                        ctx.fillStyle = 'rgba(254, 240, 138, 0.2)';
+                        ctx.fill();
+                    }
+
+                    // 碰撞檢測 (AABB)
+                    const px = player.x + 10;
+                    const py = player.y + 10;
+                    const pw = player.width - 20;
+                    const ph = player.height - 20;
+
+                    if (item.x > px && item.x < px + pw && renderY > py && renderY < py + ph) {
+                        if (item.isBlessing) {
+                            // 收集到祝福！
+                            sounds.playCollect();
+                            updateProgress(6); // 增加 6% 進度
+                            createParticles(item.x, renderY, item.color, 15);
+
+                            // 隨機彈出祝福經文
+                            const randomBlessing = BLESSINGS[Math.floor(Math.random() * BLESSINGS.length)];
+                            showBlessingToast(randomBlessing);
+                        } else {
+                            // 跨越/輕微擦過障礙物（不設扣分懲罰，只給予安慰陪伴）
+                            sounds.playTone(280, 'sine', 0.15, 0.15);
+                            createParticles(item.x, renderY, '#94A3B8', 6);
+                            showBlessingToast({
+                                icon: '🛡️',
+                                text: '神是你的庇護所！低潮重擔全都被主跨越！',
+                                scripture: '詩篇 46:1'
+                            });
+                        }
+                        items.splice(i, 1);
+                        continue;
+                    }
+
+                    // 超出畫面移除
+                    if (item.x < -60) {
+                        items.splice(i, 1);
+                    }
+                }
+            } else if (isGameFinished) {
+                // 結局時玩家持續留在畫面上微笑
+                player.draw();
+            }
+
+            // 更新與繪製粒子
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= p.life;
+                if (p.alpha <= 0) {
+                    particles.splice(i, 1);
+                    continue;
+                }
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // 更新與繪製愛心煙火
+            for (let i = fireworks.length - 1; i >= 0; i--) {
+                const f = fireworks[i];
+                f.x += f.vx;
+                f.y += f.vy;
+                f.vy += 0.05; // 微重力
+                f.alpha -= 0.015;
+                if (f.alpha <= 0) {
+                    fireworks.splice(i, 1);
+                    continue;
+                }
+                ctx.save();
+                ctx.globalAlpha = f.alpha;
+                ctx.fillStyle = f.color;
+                ctx.beginPath();
+                ctx.arc(f.x, f.y, f.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        // --- 6. 事件監聽與控制邏輯 ---
+        function handleJumpAction() {
+            sounds.init();
+            if (!isGameStarted) return;
+            if (isGameFinished) {
+                createHeartFireworks();
+                return;
+            }
+            player.jump();
+        }
+
+        // 鍵盤控制
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                e.preventDefault();
+                handleJumpAction();
+            }
+        });
+
+        // 螢幕點擊與觸控控制
+        canvas.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            handleJumpAction();
+        });
+
+        document.getElementById('mobileJumpBtn').addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            handleJumpAction();
+        });
+
+        // 開始遊戲按鈕
+        document.getElementById('startGameBtn').addEventListener('click', () => {
+            sounds.init();
+            document.getElementById('startModal').classList.add('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                document.getElementById('startModal').classList.add('hidden');
+            }, 300);
+
+            isGameStarted = true;
+            player.reset();
+            initFlowers();
+            sounds.playCollect();
+        });
+
+        // 靜音切換
+        const soundToggleBtn = document.getElementById('soundToggleBtn');
+        const soundIcon = document.getElementById('soundIcon');
+        soundToggleBtn.addEventListener('click', () => {
+            sounds.init();
+            sounds.muted = !sounds.muted;
+            soundIcon.innerText = sounds.muted ? '🔇' : '🔊';
+        });
+
+        // 說明按鈕
+        document.getElementById('helpBtn').addEventListener('click', () => {
+            document.getElementById('startModal').classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+        });
+
+        // 結局 Modal - 愛心煙火按鈕
+        document.getElementById('blessingHeartBtn').addEventListener('click', () => {
+            for (let i = 0; i < 3; i++) {
+                setTimeout(createHeartFireworks, i * 200);
+            }
+        });
+
+        // 再玩一次按鈕
+        document.getElementById('restartBtn').addEventListener('click', () => {
+            document.getElementById('endingModal').classList.add('opacity-0', 'scale-95');
+            setTimeout(() => {
+                document.getElementById('endingModal').classList.add('hidden');
+            }, 300);
+
+            gameProgress = 0;
+            isGameFinished = false;
+            items = [];
+            document.getElementById('progressBar').style.width = '0%';
+            document.getElementById('progressText').innerText = '0%';
+            player.reset();
+            initFlowers();
+        });
+
+        // 初始化繪製
+        player.reset();
+        initFlowers();
+        gameLoop();
+    </script>
+</body>
+</html>
